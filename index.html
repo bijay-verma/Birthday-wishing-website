@@ -707,7 +707,7 @@
       </div>
     </div>
 
-    <p class="hint" id="blowHint">blow into your mic, or tap the flame</p>
+    <p class="hint" id="blowHint">tap the flame to blow it out</p>
     <button class="relight" id="relightBtn">light it again</button>
     <p class="wish" id="wishMsg">There it goes — may everything you wished for find you first.</p>
   </main>
@@ -927,10 +927,9 @@
   const wishMsg = document.getElementById('wishMsg');
   const paletteColors = ['#f0bd4f', '#ee9dbb', '#4fb3a3', '#faf1e2', '#c9678f'];
   let isLit = true;
-  let audioCtx, analyser, micStream, micData;
 
   // playful dodge: the flame ducks away the first three tries, then gives in
-  const defaultHint = 'blow into your mic, or tap the flame';
+  const defaultHint = 'tap the flame to blow it out';
   const dodgeHints = ['ha, missed!', 'nice try — again?', 'okay, last one...'];
   const dodgeOffsets = ['78px', '-72px', '0px'];
   let dodgeAttempts = 0;
@@ -985,7 +984,6 @@
     void headline.offsetWidth; // restart the pop animation each time
     headline.classList.add('lit');
     paperConfetti();
-    stopMic();
   }
 
   function attemptBlow(){
@@ -1013,7 +1011,6 @@
     relightBtn.classList.remove('show');
     wishMsg.classList.remove('show');
     headline.classList.remove('lit');
-    startMic();
   }
 
   relightBtn.addEventListener('click', relightCandle);
@@ -1023,42 +1020,7 @@
   });
   candleArea.addEventListener('touchstart', (e) => { e.preventDefault(); attemptBlow(); }, { passive: false });
 
-  function startMic(){
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(stream => {
-        micStream = stream;
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(stream);
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 512;
-        micData = new Uint8Array(analyser.frequencyBinCount);
-        source.connect(analyser);
-        blowHint.textContent = 'blow into your mic, or tap the flame';
-        requestAnimationFrame(checkBlow);
-      })
-      .catch(() => {
-        blowHint.textContent = 'tap the flame to blow it out';
-      });
-  }
 
-  function checkBlow(){
-    if (!isLit || !analyser) return;
-    analyser.getByteFrequencyData(micData);
-    let sum = 0;
-    for (let i = 0; i < micData.length; i++) sum += micData[i];
-    const avg = sum / micData.length;
-    if (avg > 55){ blowOutCandle(); return; }
-    requestAnimationFrame(checkBlow);
-  }
-
-  function stopMic(){
-    if (micStream) micStream.getTracks().forEach(t => t.stop());
-    if (audioCtx) audioCtx.close();
-    audioCtx = null; analyser = null; micStream = null;
-  }
-
-  startMic();
 </script>
 
 </body>
